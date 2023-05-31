@@ -1,100 +1,66 @@
 import requests
+import pandas as pd
 from tkinter import *
 from bs4 import BeautifulSoup
-import pandas as pd
+from tkhtmlview import HTMLLabel
 
+def fetch_data():
+    try:
+        response = requests.get('https://www.kursna-lista.info/')
+        response.raise_for_status()  # Raise exception for unsuccessful HTTP response
+        html = response.text
+        soup = BeautifulSoup(html, 'lxml')
+        table = soup.find('table', id='kursna-lista')
+        rows = table.find_all('tr')[1:]
 
+        headers = ['Šifra Valute', 'Zemlja', 'Valuta', 'Količina', 'Kupovni Kurs', 'Srednji Kurs', 'Prodajni Kurs']
+        data = [[td.text for td in row.find_all('td')[1:8]] for row in rows[:6]]
 
-
-
-response = requests.get('https://www.kursna-lista.info/')
-#print (response)
-html = response.text
-soup = BeautifulSoup(html, 'lxml')
-table1 = soup.find('table', id='kursna-lista') #text.strip()
-date1 = soup.find('div', id='maint-table-header2')
-for i in date1.find_all('h2'):
-    headline_text = i.text.strip()
-headers = []
-# for i in table1.find_all('th'):
-#     title = i.text
-#     headers.append(title)
-# mydata = pd.DataFrame(columns = headers[1:])
-for j in table1.find_all('tr')[1:]:
-    row_data = j.find_all('td')
-    row = []
-    row.append(row_data[1].text)
-    row.append(row_data[2].text)
-    row.append(row_data[3].text)
-    row.append(row_data[4].text)
-    row.append(row_data[5].text)
-    row.append(row_data[6].text)
-    row.append(row_data[7].text)
-    headers.append(row)
-
-#print (headers[1][1])
-
-df = pd.DataFrame(headers[0:6])
-maintext_list = df.to_string(index=False)
-
-#------------------------------------------
+        df = pd.DataFrame(data, columns=headers)
+        return df
+    except (requests.RequestException, ValueError) as e:
+        print(f"Error fetching data: {e}")
+        return None
 
 def windows_configuration():
-        K_Lista.geometry("530x250")
-        K_Lista.title("KURSNA LISTA")
-        K_Lista.resizable(False, False)
-        icon = PhotoImage(file="icon.png")
-        K_Lista.iconphoto(True, icon)
-        K_Lista.config(bg="white")
+    K_Lista.geometry("530x250")
+    K_Lista.title("KURSNA LISTA")
+    K_Lista.resizable(False, False)
+    icon = PhotoImage(file="icon.png")
+    K_Lista.iconphoto(True, icon)
+    K_Lista.config(bg="white")
 
 def headline():
-    headline = Label(K_Lista, 
-                text=headline_text, 
-                font=("Arial", 10), 
-                fg="BLACK", borderwidth=1, relief="solid")
-    return headline
+    headline_text = fetch_data()
+    if headline_text is not None:
+        headline = Label(K_Lista, text=headline_text, font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
+        return headline
+    else:
+        return None
 
-def maintext():
-    maintext = Label(K_Lista, 
-                text=maintext_list, 
-                font=("Arial", 10), 
-                fg="BLACK",
-                bg="white", borderwidth=1, relief="solid")
-    return maintext
-
-#------------------------------------------
+def display_data():
+    data = fetch_data()
+    if data is not None:
+        df = pd.DataFrame(data)
+        styled_df = df.style.set_table_styles([{'selector': 'tr', 'props': [('border', 'solid 1px')]}, {'selector': 'th', 'props': [('border', 'solid 1px')]}, {'selector': 'td', 'props': [('border', 'solid 1px')]}]).set_table_attributes("border=1").set_properties(**{'border-collapse': 'collapse', 'border': 'solid'})
+        html_table = styled_df.to_html(index=False).replace('<table', '<table style="border-collapse:collapse;border:solid"')
+        maintext = HTMLLabel(K_Lista, html=html_table)
+        maintext.grid(row=2, column=0, columnspan=7, pady=2, padx=2)
+    else:
+        return None
 
 K_Lista = Tk()
-l1 = Label(K_Lista, text = "Šifra Valute", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l2 = Label(K_Lista, text = "Zemlja", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l3 = Label(K_Lista, text = "Valuta", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l4 = Label(K_Lista, text = "Količina", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l5 = Label(K_Lista, text = "Kupovni Kurs", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l6 = Label(K_Lista, text = "Srednji Kurs", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-l7 = Label(K_Lista, text = "Prodajni Kurs", font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-
-
-canvas = Canvas(K_Lista, width=530, height=250, bg="gray")
-
 windows_configuration()
 
-#------------------------------------------
+headline_label = headline()
+if headline_label is not None:
+    headline_label.grid(row=0, column=0, pady=2, padx=2, columnspan=7)
 
-headline().grid(row = 0, column = 0, pady = 2, padx = 2, columnspan = 7)
-l1.grid(row = 1, column = 0, pady = 2, padx = 2)
-l2.grid(row = 1, column = 1, pady = 2, padx = 2)
-l3.grid(row = 1, column = 2, pady = 2, padx = 2)
-l4.grid(row = 1, column = 3, pady = 2, padx = 2)
-l5.grid(row = 1, column = 4, pady = 2, padx = 2)
-l6.grid(row = 1, column = 5, pady = 2, padx = 2)
-l7.grid(row = 1, column = 6, pady = 2, padx = 2)
+labels = ['Šifra Valute', 'Zemlja', 'Valuta', 'Količina', 'Kupovni Kurs', 'Srednji Kurs', 'Prodajni Kurs']
+for i, label in enumerate(labels):
+    lbl = Label(K_Lista, text=label, font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
+    lbl.grid(row=1, column=i, pady=2, padx=2)
 
-for i in range(0,7):
-    for j in range(0,7):
-        field=("field{}{}".format(i, j))
-        globals()[field] = Label(K_Lista, text = headers[i][j], font=("Arial", 10), fg="BLACK", borderwidth=1, relief="solid")
-        globals()[field].grid(row = i+2, column = j, pady = 2, padx = 2)
-#maintext().pack(side="top", pady=10)
-
+display_data()
 
 K_Lista.mainloop()
