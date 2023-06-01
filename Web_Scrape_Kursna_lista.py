@@ -15,10 +15,17 @@ def windows_configuration():
 
 def fetch_data():
     try:
+        if hasattr(fetch_data, 'data'):
+            # If the data has already been fetched, return the stored data
+            return fetch_data.data
+
         response = requests.get('https://www.kursna-lista.info/')
         response.raise_for_status()
         html = response.text
         soup = BeautifulSoup(html, 'lxml')
+
+        # Store the data in the fetch_data function itself
+        fetch_data.data = soup
         return soup
     except (requests.RequestException, ValueError) as e:
         print(f"Error fetching data: {e}")
